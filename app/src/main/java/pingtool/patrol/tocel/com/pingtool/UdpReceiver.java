@@ -11,7 +11,7 @@ public class UdpReceiver extends UDP {
     DecimalFormat format ;
     private float mLossCount;
 
-    public UdpReceiver(UDPSenderReceiver udpSenderReceiver,Handler handler) {
+    public UdpReceiver(UDPSenderReceiver udpSenderReceiver, Handler handler) {
         super(udpSenderReceiver, handler);
         format = new DecimalFormat("0.000000");
     }

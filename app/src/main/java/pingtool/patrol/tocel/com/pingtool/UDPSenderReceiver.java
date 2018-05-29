@@ -21,6 +21,12 @@ public class UDPSenderReceiver {
     public static final int MSG_RECEIVE = 1;
     protected InetAddress address;
 
+    public boolean isStarted() {
+        return isStarted;
+    }
+
+    public volatile boolean isStarted;
+
     public UDPSenderReceiver() {
 
     }
@@ -33,6 +39,10 @@ public class UDPSenderReceiver {
         }else {
             udpSocket = new DatagramSocket(port);
             udpSocket.setSoTimeout(150);
+            isStarted = true;
+            Log.e(TAG, "init: connect to server successful");
+            Log.e(TAG, "init: is start " + isStarted);
+            Log.e(TAG, "init: "+this);
         }
     }
 
@@ -65,6 +75,7 @@ public class UDPSenderReceiver {
     }
 
     public void release(){
+        isStarted = false;
         if(udpSocket != null){
             udpSocket.disconnect();
             udpSocket.close();

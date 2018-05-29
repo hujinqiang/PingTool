@@ -2,6 +2,7 @@ package pingtool.patrol.tocel.com.pingtool;
 
 import android.os.Handler;
 import android.os.Message;
+import android.util.Log;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
@@ -10,7 +11,8 @@ import java.util.concurrent.TimeUnit;
 
 public abstract class UDP implements Runnable {
 
-    UDPSenderReceiver udpSenderReceiver ;
+    public static final String TAG = UDP.class.getSimpleName();
+    volatile UDPSenderReceiver udpSenderReceiver ;
 
     DatagramPacket datagramPacket;
 
@@ -25,7 +27,7 @@ public abstract class UDP implements Runnable {
 
     float timeOutCount;
 
-    public UDP(UDPSenderReceiver udpSenderReceiver,Handler handler ) {
+    public UDP(UDPSenderReceiver udpSenderReceiver, Handler handler) {
         this.handler = handler;
         this.udpSenderReceiver = udpSenderReceiver;
         datagramPacket = new DatagramPacket(data,data.length);
@@ -36,6 +38,13 @@ public abstract class UDP implements Runnable {
     public void run() {
         while (isStart){
             try {
+
+                while ((!udpSenderReceiver.isStarted) && isStart){
+                    Log.e(TAG, "run: udp socket is start "+ udpSenderReceiver.isStarted + ",socket:"+udpSenderReceiver);
+                    Log.e(TAG, Thread.currentThread().getName() + " udp socket not start wait ...");
+                    Thread.sleep(100);
+                }
+
                 doWork();
                 count++;
                 msg = Message.obtain();
@@ -49,8 +58,12 @@ public abstract class UDP implements Runnable {
                     timeOutCount ++ ;
                 }
                 e.printStackTrace();
+            }finally {
             }
         }
+
+        Log.e(TAG, Thread.currentThread().getName() + "  is end.");
+
     }
 
     public int byteArrayToInt(byte[] b) {
@@ -83,6 +96,10 @@ public abstract class UDP implements Runnable {
 
     public void setStart(boolean start) {
         isStart = start;
+    }
+
+    public void setUdpSenderReceiver(UDPSenderReceiver udpSenderReceiver) {
+        this.udpSenderReceiver = udpSenderReceiver;
     }
 
     public abstract void doWork() throws IOException;

@@ -9,11 +9,14 @@ import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
 import android.support.annotation.Nullable;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import org.w3c.dom.Text;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
@@ -23,7 +26,7 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
     public static final String IS_START = "is_start";
     public static final String THREAD_NAME_SENDER = "UDP_Sender";
     public static final String THREAD_NAME_RECEIVER = "UDP_Receiver";
-    UDPSenderReceiver senderReceiver ;
+    volatile UDPSenderReceiver senderReceiver ;
     private EditText remoteIP;
     private EditText remotePort;
 
@@ -41,6 +44,11 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
     private final static String TAG = "UDPActivity";
     protected MyThread sendT;
     protected MyThread receiverT;
+
+    boolean isSending;
+
+    boolean isSocketStart;
+    protected MyApplication application;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -61,7 +69,7 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
 
 
         preferences = getSharedPreferences(PingActivity.PING_CONFIG,MODE_PRIVATE);
-        remoteIP.setText(preferences.getString("udp_server","127.0.0.1"));
+        remoteIP.setText(preferences.getString("udp_server",""));
         remotePort.setText(preferences.getInt("udp_port",65535)+"");
 
         editor = preferences.edit();
@@ -76,65 +84,87 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
             Thread t = thread.getKey();
             if (THREAD_NAME_SENDER.equals(t.getName())){
                 sendT = (MyThread) t;
-                start.setEnabled(false);
                 UDP target = (UDP) ((MyThread) t).getTarget();
                 target.setHandler(handler);
+                sender = (UdpSender) target;
+                isSending = true;
+                isSocketStart = true;
             }else if (THREAD_NAME_RECEIVER.equals(t.getName())){
                 receiverT = (MyThread) t;
-                start.setEnabled(false);
                 UDP target = (UDP) ((MyThread) t).getTarget();
                 target.setHandler(handler);
+                receiver = (UdpReceiver) target;
+                isSending = true;
+                isSocketStart = true;
             }
         }
+        application = (MyApplication) getApplication();
 
-        if(start.isEnabled()){
+        if(!isSocketStart && !TextUtils.isEmpty(remoteIP.getText().toString())){
             //启动udp  Socket
             startUdpSocket();
-//            start.setText("停止发包");
         }
+
+        changeButtonText();
 
 
         WifiManager manager = (WifiManager) getApplication().getSystemService(Context.WIFI_SERVICE);
         lock = manager.createMulticastLock("test wifi");
         lock.acquire();
 
-        /*Intent intent = new Intent(this,UdpService.class);
 
-        ServiceConnection conn  = new ServiceConnection() {
-            @Override
-            public void onServiceConnected(ComponentName name, IBinder service) {
-                mMessenger = new Messenger(service);
-            }
+        if(application.udpSenderReceiver != null){
+            senderReceiver = application.udpSenderReceiver;
+        }
 
-            @Override
-            public void onServiceDisconnected(ComponentName name) {
+    }
 
-            }
-        };
-
-        bindService(intent,conn,BIND_AUTO_CREATE);*/
-
+    private void changeButtonText() {
+        if(isSending){
+            start.setText("停止发包");
+        }else{
+            start.setText("开始发包");
+        }
     }
 
     @Override
     public void onClick(View v) {
 
-        isStart = preferences.getBoolean(IS_START,false);
-        String ip = remoteIP.getText().toString();
-        int port = Integer.parseInt(remotePort.getText().toString());
+        if(TextUtils.isEmpty(remoteIP.getText().toString())){
+            showToast("请输入要发包的IP");
+            return;
+        }
 
-        editor.putString("udp_server",ip);
-        editor.putInt("udp_port",port);
-        editor.putBoolean(IS_START,true);
-        editor.commit();
+        if(!isSocketStart){
+            startUdpSocket();
+        }
 
-        sender = new UdpSender(senderReceiver,handler);
-        sendT = new MyThread(sender, THREAD_NAME_SENDER);
-        sendT.start();
+        if (!isSending) {
+            isStart = preferences.getBoolean(IS_START,false);
+            String ip = remoteIP.getText().toString();
+            int port = Integer.parseInt(remotePort.getText().toString());
 
-        receiver = new UdpReceiver(senderReceiver,handler);
-        receiverT = new MyThread(receiver, THREAD_NAME_RECEIVER);
-        receiverT.start();
+            editor.putString("udp_server",ip);
+            editor.putInt("udp_port",port);
+            editor.putBoolean(IS_START,true);
+            editor.commit();
+
+            sender = new UdpSender(senderReceiver,handler);
+            sendT = new MyThread(sender, THREAD_NAME_SENDER);
+            sendT.start();
+
+            receiver = new UdpReceiver(senderReceiver,handler);
+            receiverT = new MyThread(receiver, THREAD_NAME_RECEIVER);
+            receiverT.start();
+
+            isSending = true;
+//            start.setEnabled(false);
+        }else{
+            stopSend();
+            isSending = false;
+        }
+
+        changeButtonText();
 
     }
 
@@ -142,34 +172,48 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
         if(lock != null && lock.isHeld()){
             lock.release();
         }
-        senderReceiver.release();
-
         if (sender != null || receiver != null) {
             sender.setStart(false);
             receiver.setStart(false);
         }
+        senderReceiver.release();
+
+        application.udpSenderReceiver = null;
+        isSocketStart = false;
     }
 
     private void startUdpSocket() {
-        new Thread(new Runnable() {
+        Thread startSocketThread = new Thread(new Runnable() {
             @Override
             public void run() {
-                String ip = remoteIP.getText().toString();
-                int port = Integer.parseInt(remotePort.getText().toString());
-
-                senderReceiver = new UDPSenderReceiver();
                 try {
-                    senderReceiver.init(ip,port);
-                    showToast("连接到"+ip +"成功!");
-                } catch (UnknownHostException e) {
-                    e.printStackTrace();
-                    showToast("连接到"+ip+"失败，"+e.getMessage());
-                } catch (SocketException e) {
-                    e.printStackTrace();
-                    showToast("连接到"+ip+"失败，"+e.getMessage());
+                    String ip = remoteIP.getText().toString();
+                    int port = Integer.parseInt(remotePort.getText().toString());
+
+                    senderReceiver = new UDPSenderReceiver();
+
+                    try {
+                        senderReceiver.init(ip,port);
+                        showToast("连接到"+ip +"成功!");
+                        isSocketStart = true;
+                        application.udpSenderReceiver = senderReceiver;
+                        if (sender != null && receiver != null) {
+                            sender.setUdpSenderReceiver(senderReceiver);
+                            receiver.setUdpSenderReceiver(senderReceiver);
+                        }
+                    } catch (UnknownHostException e) {
+                        e.printStackTrace();
+                        showToast("连接到"+ip+"失败，"+e.getMessage());
+                    } catch (SocketException e) {
+                        e.printStackTrace();
+                        showToast("连接到"+ip+"失败，"+e.getMessage());
+                    }
+                } finally {
                 }
+
             }
-        }).start();
+        });
+        startSocketThread.start();
     }
 
     private void showToast(final String msg) {
@@ -194,7 +238,6 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
             case UDPSenderReceiver.MSG_RECEIVE:
                 s = "接收第" + order +"个包  \n收到的包的数量为："+pkgCount+" \n丢包率："+msg.obj;
                 statics.setText(s);
-                start.setEnabled(false);
                 break;
         }
 
