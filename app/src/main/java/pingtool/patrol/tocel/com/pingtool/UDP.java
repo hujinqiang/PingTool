@@ -5,6 +5,7 @@ import android.os.Message;
 
 import java.io.IOException;
 import java.net.DatagramPacket;
+import java.net.SocketTimeoutException;
 import java.util.concurrent.TimeUnit;
 
 public abstract class UDP implements Runnable {
@@ -15,30 +16,38 @@ public abstract class UDP implements Runnable {
 
     byte[] data = new byte[1024];
 
-    int count;
+    float count;
 
     Handler handler;
     protected Message msg;
+
+    protected boolean isStart;
+
+    float timeOutCount;
 
     public UDP(UDPSenderReceiver udpSenderReceiver,Handler handler ) {
         this.handler = handler;
         this.udpSenderReceiver = udpSenderReceiver;
         datagramPacket = new DatagramPacket(data,data.length);
+        setStart(true);
     }
 
     @Override
     public void run() {
-        while (true){
+        while (isStart){
             try {
                 doWork();
                 count++;
                 msg = Message.obtain();
                 msg.what = getMsgWhat();
                 handler.sendMessage(msg);
-                TimeUnit.MILLISECONDS.sleep(20);
+                TimeUnit.MILLISECONDS.sleep(100);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             } catch (IOException e) {
+                if (e instanceof SocketTimeoutException){
+                    timeOutCount ++ ;
+                }
                 e.printStackTrace();
             }
         }
@@ -58,6 +67,22 @@ public abstract class UDP implements Runnable {
                 (byte) ((a >> 8) & 0xFF),
                 (byte) (a & 0xFF)
         };
+    }
+
+    public Handler getHandler() {
+        return handler;
+    }
+
+    public void setHandler(Handler handler) {
+        this.handler = handler;
+    }
+
+    public boolean isStart() {
+        return isStart;
+    }
+
+    public void setStart(boolean start) {
+        isStart = start;
     }
 
     public abstract void doWork() throws IOException;

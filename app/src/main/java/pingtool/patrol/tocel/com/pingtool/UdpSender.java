@@ -12,13 +12,13 @@ public class UdpSender extends UDP implements Runnable {
 
     @Override
     public void doWork() throws IOException {
-        System.arraycopy(intToByteArray(count),0,data,0,4);
+        System.arraycopy(intToByteArray((int) count),0,data,0,4);
         udpSenderReceiver.sendPackage(datagramPacket);
     }
 
     @Override
     public int getMsgWhat() {
-        msg.arg1 = count;
+        msg.arg1 = (int) count;
         return UDPSenderReceiver.MSG_SEND;
     }
 
