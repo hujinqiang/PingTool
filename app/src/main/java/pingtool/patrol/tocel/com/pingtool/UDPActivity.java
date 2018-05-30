@@ -16,11 +16,11 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import org.w3c.dom.Text;
 
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 public class UDPActivity extends Activity implements View.OnClickListener ,Handler.Callback{
     public static final String IS_START = "is_start";
@@ -49,6 +49,8 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
 
     boolean isSocketStart;
     protected MyApplication application;
+
+    volatile CountDownLatch countDownLatch = new CountDownLatch(1);
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -151,14 +153,16 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
 
             sender = new UdpSender(senderReceiver,handler);
             sendT = new MyThread(sender, THREAD_NAME_SENDER);
+            sender.setCountDownLatch(countDownLatch);
             sendT.start();
 
             receiver = new UdpReceiver(senderReceiver,handler);
             receiverT = new MyThread(receiver, THREAD_NAME_RECEIVER);
+            receiver.setCountDownLatch(countDownLatch);
             receiverT.start();
 
             isSending = true;
-//            start.setEnabled(false);
+
         }else{
             stopSend();
             isSending = false;
@@ -178,6 +182,8 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
         }
         senderReceiver.release();
 
+        countDownLatch = null;
+        countDownLatch = new CountDownLatch(1);
         application.udpSenderReceiver = null;
         isSocketStart = false;
     }
@@ -195,12 +201,13 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
                     try {
                         senderReceiver.init(ip,port);
                         showToast("连接到"+ip +"成功!");
-                        isSocketStart = true;
                         application.udpSenderReceiver = senderReceiver;
                         if (sender != null && receiver != null) {
                             sender.setUdpSenderReceiver(senderReceiver);
                             receiver.setUdpSenderReceiver(senderReceiver);
                         }
+                        countDownLatch.countDown();
+                        isSocketStart = true;
                     } catch (UnknownHostException e) {
                         e.printStackTrace();
                         showToast("连接到"+ip+"失败，"+e.getMessage());

@@ -7,6 +7,7 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.SocketTimeoutException;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 public abstract class UDP implements Runnable {
@@ -27,6 +28,9 @@ public abstract class UDP implements Runnable {
 
     float timeOutCount;
 
+    CountDownLatch countDownLatch;
+
+
     public UDP(UDPSenderReceiver udpSenderReceiver, Handler handler) {
         this.handler = handler;
         this.udpSenderReceiver = udpSenderReceiver;
@@ -38,13 +42,20 @@ public abstract class UDP implements Runnable {
     public void run() {
         while (isStart){
             try {
+                if (!udpSenderReceiver.isStarted) {
+                    Log.e(TAG, Thread.currentThread().getName() + " is waiting udp socket" );
+                    countDownLatch.await();
 
-                while ((!udpSenderReceiver.isStarted) && isStart){
+                /*while ((!udpSenderReceiver.isStarted) && isStart){
                     Log.e(TAG, "run: udp socket is start "+ udpSenderReceiver.isStarted + ",socket:"+udpSenderReceiver);
                     Log.e(TAG, Thread.currentThread().getName() + " udp socket not start wait ...");
                     Thread.sleep(100);
-                }
+                }*/
 
+                    Log.e(TAG, Thread.currentThread().getName() + " udp socket is create ok..." );
+                }else{
+//                    Log.e(TAG, "udp socket is started...");
+                }
                 doWork();
                 count++;
                 msg = Message.obtain();
@@ -100,6 +111,10 @@ public abstract class UDP implements Runnable {
 
     public void setUdpSenderReceiver(UDPSenderReceiver udpSenderReceiver) {
         this.udpSenderReceiver = udpSenderReceiver;
+    }
+
+    public void setCountDownLatch(CountDownLatch countDownLatch) {
+        this.countDownLatch = countDownLatch;
     }
 
     public abstract void doWork() throws IOException;

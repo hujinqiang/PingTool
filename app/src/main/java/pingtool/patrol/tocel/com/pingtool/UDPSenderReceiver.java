@@ -42,7 +42,6 @@ public class UDPSenderReceiver {
             isStarted = true;
             Log.e(TAG, "init: connect to server successful");
             Log.e(TAG, "init: is start " + isStarted);
-            Log.e(TAG, "init: "+this);
         }
     }
 
