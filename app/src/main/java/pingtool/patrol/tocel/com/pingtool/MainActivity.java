@@ -6,6 +6,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 
+import pingtool.patrol.tocel.com.pingtool.ping.PingActivity;
+import pingtool.patrol.tocel.com.pingtool.udp.UDPActivity;
+
 /**
  *
  */

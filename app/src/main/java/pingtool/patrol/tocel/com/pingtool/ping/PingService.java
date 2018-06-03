@@ -1,4 +1,4 @@
-package pingtool.patrol.tocel.com.pingtool;
+package pingtool.patrol.tocel.com.pingtool.ping;
 
 import android.app.Service;
 import android.content.Intent;

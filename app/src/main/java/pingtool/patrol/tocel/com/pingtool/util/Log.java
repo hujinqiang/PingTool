@@ -1,4 +1,4 @@
-package pingtool.patrol.tocel.com.pingtool;
+package pingtool.patrol.tocel.com.pingtool.util;
 
 import android.os.Environment;
 
@@ -42,7 +42,11 @@ public class Log {
         }
     }
 
-    public static Logger getLOG(){
+    /**
+     * 获取log的实例
+     * @return
+     */
+    public static Logger LOG(){
         return LOG;
     }
 

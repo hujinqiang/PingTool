@@ -27,13 +27,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".PingActivity">
+        <activity android:name=".ping.PingActivity">
         </activity>
-        <activity android:name=".UDPActivity">
+        <activity android:name=".udp.UDPActivity">
         </activity>
 
         <service
-            android:name=".PingService"
+            android:name=".ping.PingService"
             android:enabled="true"
             android:exported="true"></service>
     </application>

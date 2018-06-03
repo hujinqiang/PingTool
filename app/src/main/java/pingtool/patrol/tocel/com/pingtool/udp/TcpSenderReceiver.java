@@ -1,4 +1,4 @@
-package pingtool.patrol.tocel.com.pingtool;
+package pingtool.patrol.tocel.com.pingtool.udp;
 
 import java.io.IOException;
 import java.net.ServerSocket;

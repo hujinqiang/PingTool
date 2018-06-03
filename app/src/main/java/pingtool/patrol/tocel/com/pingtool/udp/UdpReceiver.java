@@ -1,10 +1,12 @@
-package pingtool.patrol.tocel.com.pingtool;
+package pingtool.patrol.tocel.com.pingtool.udp;
 
 
 import android.os.Handler;
 
 import java.io.IOException;
 import java.text.DecimalFormat;
+
+import pingtool.patrol.tocel.com.pingtool.util.Log;
 
 public class UdpReceiver extends UDP {
 
@@ -34,7 +36,7 @@ public class UdpReceiver extends UDP {
         String lossStr = format.format(lossPacketCount);
         if(lossPacketCount > 0 && mLossCount != lossCount){
             this.mLossCount = lossCount;
-            Log.getLOG().severe("total:"+msg.arg1 +",receive:"+msg.arg2 +",loss packet count:"+ lossCount +",loss packet rate:"+lossStr);
+            Log.LOG().severe("total:"+msg.arg1 +",receive:"+msg.arg2 +",loss packet count:"+ lossCount +",loss packet rate:"+lossStr);
         }
         msg.obj = lossStr;
         return UDPSenderReceiver.MSG_RECEIVE;

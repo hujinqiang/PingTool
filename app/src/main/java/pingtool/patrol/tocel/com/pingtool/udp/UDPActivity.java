@@ -1,4 +1,4 @@
-package pingtool.patrol.tocel.com.pingtool;
+package pingtool.patrol.tocel.com.pingtool.udp;
 
 import android.app.Activity;
 import android.content.Context;
@@ -21,6 +21,10 @@ import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+
+import pingtool.patrol.tocel.com.pingtool.MyApplication;
+import pingtool.patrol.tocel.com.pingtool.R;
+import pingtool.patrol.tocel.com.pingtool.ping.PingActivity;
 
 public class UDPActivity extends Activity implements View.OnClickListener ,Handler.Callback{
     public static final String IS_START = "is_start";
@@ -110,7 +114,7 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
         changeButtonText();
 
 
-        WifiManager manager = (WifiManager) getApplication().getSystemService(Context.WIFI_SERVICE);
+        WifiManager manager = (WifiManager) getApplication().getApplicationContext().getSystemService(Context.WIFI_SERVICE);
         lock = manager.createMulticastLock("test wifi");
         lock.acquire();
 
