@@ -6,6 +6,7 @@ import android.os.Handler;
 import java.io.IOException;
 import java.text.DecimalFormat;
 
+import pingtool.patrol.tocel.com.pingtool.util.ByteUtil;
 import pingtool.patrol.tocel.com.pingtool.util.Log;
 
 public class UdpReceiver extends UDP {
@@ -27,7 +28,7 @@ public class UdpReceiver extends UDP {
     public int getMsgWhat() {
         byte[] recCount = new byte[4];
         System.arraycopy(data,0,recCount,0,4);
-        msg.arg1 = byteArrayToInt(recCount);
+        msg.arg1 = ByteUtil.byteArrayToInt(recCount);
         msg.arg2 = (int) count;
 
         float lossCount = msg.arg1-count;

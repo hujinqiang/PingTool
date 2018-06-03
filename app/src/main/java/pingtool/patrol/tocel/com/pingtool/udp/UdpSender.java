@@ -4,6 +4,8 @@ import android.os.Handler;
 
 import java.io.IOException;
 
+import pingtool.patrol.tocel.com.pingtool.util.ByteUtil;
+
 public class UdpSender extends UDP implements Runnable {
 
     public UdpSender(UDPSenderReceiver udpSenderReceiver, Handler handler) {
@@ -12,7 +14,7 @@ public class UdpSender extends UDP implements Runnable {
 
     @Override
     public void doWork() throws IOException {
-        System.arraycopy(intToByteArray((int) count),0,data,0,4);
+        System.arraycopy(ByteUtil.intToByteArray((int) count),0,data,0,4);
         udpSenderReceiver.sendPackage(datagramPacket);
     }
 

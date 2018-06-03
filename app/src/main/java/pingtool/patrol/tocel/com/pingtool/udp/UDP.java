@@ -45,13 +45,6 @@ public abstract class UDP implements Runnable {
                 if (!udpSenderReceiver.isStarted) {
                     Log.e(TAG, Thread.currentThread().getName() + " is waiting udp socket" );
                     countDownLatch.await();
-
-                /*while ((!udpSenderReceiver.isStarted) && isStart){
-                    Log.e(TAG, "run: udp socket is start "+ udpSenderReceiver.isStarted + ",socket:"+udpSenderReceiver);
-                    Log.e(TAG, Thread.currentThread().getName() + " udp socket not start wait ...");
-                    Thread.sleep(100);
-                }*/
-
                     Log.e(TAG, Thread.currentThread().getName() + " udp socket is create ok..." );
                 }else{
 //                    Log.e(TAG, "udp socket is started...");
@@ -77,21 +70,7 @@ public abstract class UDP implements Runnable {
 
     }
 
-    public int byteArrayToInt(byte[] b) {
-        return   b[3] & 0xFF |
-                (b[2] & 0xFF) << 8 |
-                (b[1] & 0xFF) << 16 |
-                (b[0] & 0xFF) << 24;
-    }
 
-    public byte[] intToByteArray(int a) {
-        return new byte[] {
-                (byte) ((a >> 24) & 0xFF),
-                (byte) ((a >> 16) & 0xFF),
-                (byte) ((a >> 8) & 0xFF),
-                (byte) (a & 0xFF)
-        };
-    }
 
     public Handler getHandler() {
         return handler;
