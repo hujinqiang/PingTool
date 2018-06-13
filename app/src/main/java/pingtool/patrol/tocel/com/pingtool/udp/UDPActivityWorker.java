@@ -1,6 +1,10 @@
 package pingtool.patrol.tocel.com.pingtool.udp;
 
 import android.app.Activity;
+import android.arch.lifecycle.Lifecycle;
+import android.arch.lifecycle.LifecycleOwner;
+import android.arch.lifecycle.LifecycleRegistry;
+import android.arch.lifecycle.Observer;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.wifi.WifiManager;
@@ -8,6 +12,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Messenger;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
@@ -16,17 +21,21 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
+import androidx.work.Data;
+import androidx.work.OneTimeWorkRequest;
+import androidx.work.State;
+import androidx.work.WorkManager;
+import androidx.work.WorkStatus;
 import pingtool.patrol.tocel.com.pingtool.MyApplication;
 import pingtool.patrol.tocel.com.pingtool.R;
 import pingtool.patrol.tocel.com.pingtool.ping.PingActivity;
 
-public class UDPActivity extends Activity implements View.OnClickListener ,Handler.Callback{
+public class UDPActivityWorker extends Activity implements View.OnClickListener ,Handler.Callback, LifecycleOwner {
     public static final String IS_START = "is_start";
     public static final String THREAD_NAME_SENDER = "UDP_Sender";
     public static final String THREAD_NAME_RECEIVER = "UDP_Receiver";
@@ -55,6 +64,8 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
     protected MyApplication application;
 
     volatile CountDownLatch countDownLatch = new CountDownLatch(1);
+
+    LifecycleRegistry lifecycleRegistry;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -105,10 +116,40 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
         }
         application = (MyApplication) getApplication();
 
+        lifecycleRegistry = new LifecycleRegistry(this);
+
+        lifecycleRegistry.markState(Lifecycle.State.CREATED);
+
         if(!isSocketStart && !TextUtils.isEmpty(remoteIP.getText().toString())){
             //启动udp  Socket
-            startUdpSocket();
+//            startUdpSocket();
+            OneTimeWorkRequest createUdpSocketWorker = new OneTimeWorkRequest.Builder(UDPSenderReceiverWorker.class).build();
+            WorkManager.getInstance().enqueue(createUdpSocketWorker);
+
+            WorkManager.getInstance().getStatusById(createUdpSocketWorker.getId()).observe(this, new Observer<WorkStatus>() {
+                @Override
+                public void onChanged(@Nullable WorkStatus workStatus) {
+                    if(workStatus == null){
+                        return;
+                    }
+                    if(workStatus.getState() == State.SUCCEEDED){
+                        WorkManager.getInstance()
+                                .beginWith(OneTimeWorkRequest.from(UDPSenderWorker.class,UDPReceiverWorker.class))
+                                .enqueue();
+                    }else if(State.FAILED == workStatus.getState()){
+                        Data data = workStatus.getOutputData();
+                        final String errMsg = data.getString("err_msg","");
+                        runOnUiThread(new Runnable() {
+                            @Override
+                            public void run() {
+                                showToast(errMsg);
+                            }
+                        });
+                    }
+                }
+            });
         }
+
 
         changeButtonText();
 
@@ -230,7 +271,7 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
         handler.post(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(UDPActivity.this,msg,Toast.LENGTH_LONG).show();
+                Toast.makeText(UDPActivityWorker.this,msg,Toast.LENGTH_LONG).show();
             }
         });
     }
@@ -254,4 +295,38 @@ public class UDPActivity extends Activity implements View.OnClickListener ,Handl
         return true;
     }
 
+    @NonNull
+    @Override
+    public Lifecycle getLifecycle() {
+        return lifecycleRegistry;
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        lifecycleRegistry.markState(Lifecycle.State.STARTED);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        lifecycleRegistry.markState(Lifecycle.State.RESUMED);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        lifecycleRegistry.handleLifecycleEvent(Lifecycle.Event.ON_PAUSE);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        lifecycleRegistry.markState(Lifecycle.State.DESTROYED);
+    }
 }
